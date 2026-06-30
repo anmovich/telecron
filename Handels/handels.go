@@ -15,13 +15,19 @@ func TimerHandler(w http.ResponseWriter, r *http.Request){
     w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if !timer.CheckType(t){
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Неверный тип времени"))
+			return
+
+	}
 		go func(t *timer.Time){
 		if err := notifications.SendNotificationTimer(t); err != nil{
-			w.WriteHeader(http.StatusInternalServerError)
-		} else{
-			w.Write([]byte("Таймер запущен успешно, ждите хуйню"))
-		}
-	}(&t)
+			w.WriteHeader(http.StatusBadRequest)	
+		  return
+		} 	
+		}(&t)
+	w.Write([]byte("Таймер запущен успешно, ждите хуйню"))
 
 }
 
