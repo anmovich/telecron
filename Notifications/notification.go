@@ -20,3 +20,13 @@ func SendNotificationTimer(t *timer.Time) error{
 	err = cmd.Run()
 return err
 }
+
+func SendNotificationOnDate(t time.Time, text string) error{
+	delay := time.Until(t)
+	time.Sleep(delay)
+	cmd := exec.Command("notify-send", 
+											"Уведомление по дате",
+											text)
+	err := cmd.Run()
+	return err
+}

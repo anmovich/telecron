@@ -3,7 +3,9 @@ package handels
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
+	datework "micron/DateWork"
 	notifications "micron/Notifications"
 	timer "micron/Timer"
 	"net/http"
@@ -39,11 +41,44 @@ func TimerHandler(w http.ResponseWriter, r *http.Request){
 	hResponse, err := json.MarshalIndent(t, "", "    ")
 	if err != nil{
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Println("Не удалось перевести структуру")
+		fmt.Println("Не удалось перевести структуру в json")
 	} else{
 		w.WriteHeader(http.StatusCreated)
 		w.Write(hResponse)
 	}
+	}
+}
+
+func DateHandler(w http.ResponseWriter, r *http.Request){
+	method := r.Method
+	if method == http.MethodPost{
+		var jsonDate datework.DateJson
+		if err := json.NewDecoder(r.Body).Decode(&jsonDate); err != nil{
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		if err := datework.DateValidator(jsonDate); err != nil{
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		clearDate := datework.RemakeDate(jsonDate)
+		go func(clearDate time.Time){
+			if err := notifications.SendNotificationOnDate(clearDate, jsonDate.Text); err != nil{
+				fmt.Println(err)
+			}
+		}(clearDate)
+
+		hResponse, err := json.MarshalIndent(clearDate, "", "    ")
+		if err != nil{
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte("Таймер успешно запущен"))
+		w.Write(hResponse)
 	}
 }
 

@@ -1,54 +1,48 @@
 package datework
 
 import (
-	"fmt"
-	"os/exec"
+	"errors"
 	"time"
 )
 
-func GetDate(year *int, month *int, day *int, hour *int, minute *int) time.Time{
-	fmt.Println("Введите год через пробел: год месяц день:")
-	fmt.Scanf("%d %d %d", year, month, day)
-	fmt.Println("Введите час минуты:")
-	fmt.Scanf("%d %d", hour, minute)
-	return CreateDate(*year, *month, *day, *hour, *minute)
+type DateJson struct{
+	Year int `json:"year"`
+	Month int `json:"month"`
+	Day int `json:"day"`
+	Hour int `json:"hour"`
+	Minute int `json:"minute"`
+	Text string `json:"text"`
 } 
 
-func CreateDate(year int, month int, day int, hour int, minute int)time.Time{
+func RemakeDate(d DateJson)time.Time{
 	return time.Date(
-		year,
-		monthConverter(month),
-		day,
-		hour,
-		minute,
+		d.Year,
+		monthConverter(d.Month),
+		d.Day,
+		d.Hour,
+		d.Minute,
 		0,
 		0,
 		time.Local,
 	)
 }
 
-func NotificationOnDate(t time.Time, text string) error{
-	delay := time.Until(t)
-	time.Sleep(delay)
-	cmd := exec.Command("notify-send", 
-											"Уведомление по дате",
-											text)
-	err := cmd.Run()
-	return err
+func DateValidator(d DateJson) error{
+	if d.Year < 0{
+		return errors.New("Incorrect year")
+	} else if d.Month <0 || d.Month > 12{
+		return errors.New("Incorrect month")
+	} else if d.Day < 0 || d.Day > 31{
+		return errors.New("Incorrect day")
+	} else if d.Hour < 0 || d.Hour > 24{
+		return errors.New("Incorrect hour")
+	} else if d.Minute < 0 || d.Minute > 60{
+		return errors.New("Incorrect minute")
+	} else{
+		return nil
+	} 
 }
 
-func DateMenu(){
-	var text string
-	fmt.Print("Введите текст уведомления: ")
-	fmt.Scan(&text)
-	var year, month, day, hour, minute int
-	t := GetDate(&year, &month, &day, &hour, &minute)
-	go func(t time.Time, text string){
-		if err := NotificationOnDate(t, text); err != nil{
-			fmt.Println(err)
-		}
-	}(t, text)
-}
 func monthConverter(month int) time.Month{
 	m := []time.Month{
 		time.January,
