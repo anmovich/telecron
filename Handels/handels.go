@@ -1,18 +1,27 @@
 package handels
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	bd "micron/Bd"
 	datework "micron/DateWork"
 	notifications "micron/Notifications"
 	run "micron/Run"
 	timer "micron/Timer"
 	"net/http"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type Handler struct {
+	DB  *pgxpool.Pool
+	Ctx context.Context
+}
+
 // Функция для запуска таймера
-func TimerHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) TimerHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 
 	//Описание метода POST, запуск таймера
@@ -50,7 +59,7 @@ func TimerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Date query
-func DateHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DateHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	//Method POST
 	if method == http.MethodPost {
@@ -66,6 +75,11 @@ func DateHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println(err)
 			}
 		}(Date)
+
+		if err := bd.WriteTimer(h.Ctx, h.DB, Date); err != nil {
+			fmt.Println(err)
+		}
+
 		//Marshall date to write response
 		hResponse, err := json.MarshalIndent(Date, "", "    ")
 		if err != nil {

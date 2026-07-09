@@ -9,14 +9,20 @@ import (
 
 func main() {
 	ctx := context.Background()
-	conn, err := bd.CreateConnection(ctx)
+	pool, err := bd.CreateConnection(ctx)
+
 	if err != nil {
 		panic(err)
 	}
-	if err := bd.CreateDatabase(ctx, conn); err != nil {
+	defer pool.Close()
+	h := handels.Handler{
+		DB:  pool,
+		Ctx: ctx,
+	}
+	if err := bd.CreateDatabase(ctx, pool); err != nil {
 		panic(err)
 	}
-	http.HandleFunc("/timer", handels.TimerHandler)
-	http.HandleFunc("/date", handels.DateHandler)
+	http.HandleFunc("/timer", h.TimerHandler)
+	http.HandleFunc("/date", h.DateHandler)
 	http.ListenAndServe(":6767", nil)
 }
