@@ -6,6 +6,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+func CreateConnection(ctx context.Context) (*pgx.Conn, error) {
+	return pgx.Connect(ctx, "postgres://postgres:anme228@localhost:5432/postgres")
+}
+
 func CreateDatabase(ctx context.Context, conn *pgx.Conn) error {
 	sqlQuery := `
 		CREATE  TABLE IF NOT EXISTS timers(
@@ -24,6 +28,4 @@ func CreateDatabase(ctx context.Context, conn *pgx.Conn) error {
 	return nil
 }
 
-func CreateConnection(ctx context.Context) (*pgx.Conn, error) {
-	return pgx.Connect(ctx, "postgres://postgres:anme228@localhost:5432/postgres")
-}
+func WriteTimerToBd()
