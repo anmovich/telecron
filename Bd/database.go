@@ -28,4 +28,4 @@ func CreateDatabase(ctx context.Context, conn *pgx.Conn) error {
 	return nil
 }
 
-func WriteTimerToBd()
+//func WriteTimerToBd()
