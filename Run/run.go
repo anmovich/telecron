@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// func to exec commands by date
 func ExecCommand(d datework.DateJson) error {
 	delay := time.Until(d.Date)
 	time.Sleep(delay)

@@ -66,7 +66,7 @@ func DateHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println(err)
 			}
 		}(Date)
-
+		//Marshall date to write response
 		hResponse, err := json.MarshalIndent(Date, "", "    ")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
