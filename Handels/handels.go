@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	bd "micron/Bd"
 	datework "micron/DateWork"
@@ -70,14 +71,41 @@ func (h *Handler) DateHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		go func(Date datework.DateJson) {
-			if err := run.ExecCommand(Date); err != nil {
-				fmt.Println(err)
-			}
-		}(Date)
 
-		if err := bd.WriteTimer(h.Ctx, h.DB, Date); err != nil {
+		fmt.Println("Получено:", Date.Date)
+		fmt.Println("Сейчас:", time.Now())
+		fmt.Println("Until:", time.Until(Date.Date))
+
+		//Validating date
+		if err := Date.DateValidator(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		fmt.Println("Валидация пройдена")
+
+		//Write timer to db
+		if err := bd.WriteTimer(h.Ctx, h.DB, &Date); err != nil {
 			fmt.Println(err)
+		}
+		fmt.Println("Записано в бд")
+
+		//Create execute struct
+		e := run.Execute{Ctx: h.Ctx, DB: h.DB}
+		if !Date.Repeat {
+			fmt.Println("Запущено единожды")
+			go func(Date datework.DateJson) {
+				if err := e.ExecOnce(Date); err != nil {
+					fmt.Println(err)
+				}
+			}(Date)
+		} else {
+			fmt.Println("Запущено повторение")
+			go func(Date datework.DateJson) {
+				if err := e.ExecRepeat(&Date); err != nil {
+					fmt.Println(err)
+				}
+			}(Date)
 		}
 
 		//Marshall date to write response
