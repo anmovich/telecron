@@ -76,11 +76,42 @@ func UpdateTask(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) error
 	return nil
 }
 
-func Check_db_done(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
+func CheckDbDone(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
 	sqlQuery := `
 		SELECT id, title, command, time_implementation, repeating, time_created, args, done
 		FROM timers
 		WHERE done = false; 
+	`
+	rows, err := p.Query(ctx, sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	Dates := make([]datework.DateJson, 1)
+	for rows.Next() {
+		var temp datework.DateJson
+		if err := rows.Scan(
+			&temp.ID,
+			&temp.Description,
+			&temp.Command,
+			&temp.Date,
+			&temp.Repeat,
+			&temp.TimeCreated,
+			&temp.Args,
+			&temp.Done,
+		); err != nil {
+			return nil, err
+		}
+		Dates = append(Dates, temp)
+	}
+
+	return Dates, nil
+}
+
+func CheckFullDb(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
+	sqlQuery := `
+		SELECT id, title, command, time_implementation, repeating, time_created, args, done
+		FROM timers;
 	`
 	rows, err := p.Query(ctx, sqlQuery)
 	if err != nil {
