@@ -119,4 +119,21 @@ func (h *Handler) DateHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Таймер успешно запущен"))
 		w.Write(hResponse)
 	}
+	if method == http.MethodGet {
+		databaseData, err := bd.CheckFullDb(h.Ctx, h.DB)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		hResponse, err := json.MarshalIndent(databaseData, "", "		")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		w.Write(hResponse)
+
+	}
 }
