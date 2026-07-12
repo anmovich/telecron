@@ -12,6 +12,8 @@ type DateJson struct {
 	Command     string    `json:"command"`
 	Args        []string  `json:"args"`
 	Repeat      bool      `json:"repeating"`
+	TimeCreated time.Time `json:"time_created"`
+	Done        bool      `json:"done"`
 }
 
 func (d DateJson) DateValidator() error {

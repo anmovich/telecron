@@ -8,10 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// connection to localhost
 func CreateConnection(ctx context.Context) (*pgxpool.Pool, error) {
 	return pgxpool.New(ctx, "postgres://postgres:anme228@localhost:5432/postgres")
 }
 
+// Create task database
 func CreateDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	sqlQuery := `
 		CREATE  TABLE IF NOT EXISTS timers(
@@ -32,6 +34,7 @@ func CreateDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	return nil
 }
 
+// Write task to db
 func WriteTimer(ctx context.Context, pool *pgxpool.Pool, d *datework.DateJson) error {
 	sqlQuery := `
 		INSERT INTO timers(title, command, args, time_implementation, repeating, time_created)
@@ -44,6 +47,7 @@ func WriteTimer(ctx context.Context, pool *pgxpool.Pool, d *datework.DateJson) e
 	return nil
 }
 
+// Set task update done
 func UpdateTaskDone(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) error {
 	sqlQuery := `
 	UPDATE timers SET done = true
@@ -55,6 +59,7 @@ func UpdateTaskDone(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) e
 	return nil
 }
 
+// Update task in db
 func UpdateTask(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) error {
 	sqlQuery := `
 		UPDATE timers SET
@@ -69,4 +74,36 @@ func UpdateTask(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) error
 		return err
 	}
 	return nil
+}
+
+func Check_db_done(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
+	sqlQuery := `
+		SELECT id, title, command, time_implementation, repeating, time_created, args, done
+		FROM timers
+		WHERE done = false; 
+	`
+	rows, err := p.Query(ctx, sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	Dates := make([]datework.DateJson, 1)
+	for rows.Next() {
+		var temp datework.DateJson
+		if err := rows.Scan(
+			&temp.ID,
+			&temp.Description,
+			&temp.Command,
+			&temp.Date,
+			&temp.Repeat,
+			&temp.TimeCreated,
+			&temp.Args,
+			&temp.Done,
+		); err != nil {
+			return nil, err
+		}
+		Dates = append(Dates, temp)
+	}
+
+	return Dates, nil
 }
