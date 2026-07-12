@@ -4,6 +4,7 @@ import (
 	"context"
 	bd "micron/Bd"
 	handels "micron/Handels"
+	initilization "micron/Initilization"
 	"net/http"
 )
 
@@ -19,6 +20,8 @@ func main() {
 		DB:  pool,
 		Ctx: ctx,
 	}
+	ini := initilization.Init{BD: pool, Ctx: ctx}
+	ini.CheckDbGo()
 	if err := bd.CreateDatabase(ctx, pool); err != nil {
 		panic(err)
 	}

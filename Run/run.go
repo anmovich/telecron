@@ -44,5 +44,5 @@ func (e *Execute) ExecRepeat(d *datework.DateJson) error {
 		d.Date = d.Date.AddDate(0, 0, 1)
 		bd.UpdateTask(*d, e.Ctx, e.DB)
 	}
-	return nil
+
 }

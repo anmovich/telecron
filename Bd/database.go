@@ -76,7 +76,7 @@ func UpdateTask(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) error
 	return nil
 }
 
-func CheckDbDone(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
+func CheckDbNotDone(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
 	sqlQuery := `
 		SELECT id, title, command, time_implementation, repeating, time_created, args, done
 		FROM timers
