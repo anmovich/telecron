@@ -10,7 +10,7 @@ import (
 
 // connection to localhost
 func CreateConnection(ctx context.Context) (*pgxpool.Pool, error) {
-	return pgxpool.New(ctx, "postgres://postgres:anme228@localhost:5432/postgres")
+	return pgxpool.New(ctx, "postgres://anme:anme228@localhost:5432/telegram")
 }
 
 // Create task database
@@ -139,4 +139,15 @@ func CheckFullDb(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, err
 	}
 
 	return Dates, nil
+}
+
+func DeleteTaskById(ctx context.Context, p *pgxpool.Pool, id int) error {
+	sqlQuery := `
+	DELETE FROM timers
+	WHERE id = $1
+	`
+	if _, err := p.Exec(ctx, sqlQuery, id); err != nil {
+		return err
+	}
+	return nil
 }
