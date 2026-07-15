@@ -10,7 +10,7 @@ import (
 
 // connection to localhost
 func CreateConnection(ctx context.Context) (*pgxpool.Pool, error) {
-	return pgxpool.New(ctx, "postgres://postgres:anme228@localhost:5432/postgres")
+	return pgxpool.New(ctx, "postgres://anme:anme228@localhost:5432/telegram")
 }
 
 // Create task database
@@ -80,7 +80,8 @@ func CheckDbNotDone(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, 
 	sqlQuery := `
 		SELECT id, title, command, time_implementation, repeating, time_created, args, done
 		FROM timers
-		WHERE done = false; 
+		WHERE done = false
+		ORDER BY id ASK; 
 	`
 	rows, err := p.Query(ctx, sqlQuery)
 	if err != nil {
@@ -111,7 +112,8 @@ func CheckDbNotDone(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, 
 func CheckFullDb(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, error) {
 	sqlQuery := `
 		SELECT id, title, command, time_implementation, repeating, time_created, args, done
-		FROM timers;
+		FROM timers
+		ORDER BY id ASC;
 	`
 	rows, err := p.Query(ctx, sqlQuery)
 	if err != nil {
@@ -137,4 +139,15 @@ func CheckFullDb(ctx context.Context, p *pgxpool.Pool) ([]datework.DateJson, err
 	}
 
 	return Dates, nil
+}
+
+func DeleteTaskById(ctx context.Context, p *pgxpool.Pool, id int) error {
+	sqlQuery := `
+	DELETE FROM timers
+	WHERE id = $1
+	`
+	if _, err := p.Exec(ctx, sqlQuery, id); err != nil {
+		return err
+	}
+	return nil
 }
