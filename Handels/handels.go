@@ -1,18 +1,29 @@
 package handels
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
+	bd "micron/Bd"
 	datework "micron/DateWork"
 	notifications "micron/Notifications"
 	run "micron/Run"
 	timer "micron/Timer"
 	"net/http"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type Handler struct {
+	DB  *pgxpool.Pool
+	Ctx context.Context
+}
+
 // Функция для запуска таймера
-func TimerHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) TimerHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 
 	//Описание метода POST, запуск таймера
@@ -50,7 +61,7 @@ func TimerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Date query
-func DateHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DateHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	//Method POST
 	if method == http.MethodPost {
@@ -61,11 +72,44 @@ func DateHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		go func(Date datework.DateJson) {
-			if err := run.ExecCommand(Date); err != nil {
-				fmt.Println(err)
-			}
-		}(Date)
+
+		fmt.Println("Получено:", Date.Date)
+		fmt.Println("Сейчас:", time.Now())
+		fmt.Println("Until:", time.Until(Date.Date))
+
+		//Validating date
+		if err := Date.DateValidator(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		fmt.Println("Валидация пройдена")
+
+		//Write timer to db
+		if err := bd.WriteTimer(h.Ctx, h.DB, &Date); err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("Записано в бд")
+
+		//Create execute struct
+		e := run.Execute{Ctx: h.Ctx, DB: h.DB}
+		/* Executing */
+		if !Date.Repeat {
+			fmt.Println("Запущено единожды")
+			go func(Date datework.DateJson) {
+				if err := e.ExecOnce(Date); err != nil {
+					fmt.Println(err)
+				}
+			}(Date)
+		} else {
+			fmt.Println("Запущено повторение")
+			go func(Date datework.DateJson) {
+				if err := e.ExecRepeat(&Date); err != nil {
+					fmt.Println(err)
+				}
+			}(Date)
+		}
+
 		//Marshall date to write response
 		hResponse, err := json.MarshalIndent(Date, "", "    ")
 		if err != nil {
@@ -76,5 +120,42 @@ func DateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("Таймер успешно запущен"))
 		w.Write(hResponse)
+	}
+	/* Get method */
+	if method == http.MethodGet {
+		databaseData, err := bd.CheckFullDb(h.Ctx, h.DB)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		hResponse, err := json.MarshalIndent(databaseData, "", "		")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		w.Write(hResponse)
+
+	}
+
+	/* DELETE method */
+	if method == http.MethodDelete {
+		parString := r.URL.Query().Get("id")
+
+		id, err := strconv.Atoi(parString)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(err.Error()))
+		}
+		err = bd.DeleteTaskById(h.Ctx, h.DB, id)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+		}
+		w.WriteHeader(204)
+		fmt.Println("Удачное удаление")
+
 	}
 }
