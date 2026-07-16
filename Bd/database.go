@@ -67,7 +67,8 @@ func UpdateTask(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) error
 			command = $2,
 			time_implementation = $3,
 			repeating = $4,
-			args = $5
+			args = $5,
+			done = false
 		WHERE id = $6
 	`
 	if _, err := p.Exec(ctx, sqlQuery, d.Description, d.Command, d.Date, d.Repeat, d.Args, d.ID); err != nil {

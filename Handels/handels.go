@@ -121,6 +121,7 @@ func (h *Handler) DateHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Таймер успешно запущен"))
 		w.Write(hResponse)
 	}
+
 	/* Get method */
 	if method == http.MethodGet {
 		databaseData, err := bd.CheckFullDb(h.Ctx, h.DB)
@@ -142,20 +143,81 @@ func (h *Handler) DateHandler(w http.ResponseWriter, r *http.Request) {
 
 	/* DELETE method */
 	if method == http.MethodDelete {
+		/* parsing htpml query */
 		parString := r.URL.Query().Get("id")
-
 		id, err := strconv.Atoi(parString)
 		if err != nil {
 			w.WriteHeader(http.StatusBadGateway)
 			w.Write([]byte(err.Error()))
+			return
 		}
+		/* Deleting task */
 		err = bd.DeleteTaskById(h.Ctx, h.DB, id)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
+			return
 		}
 		w.WriteHeader(204)
 		fmt.Println("Удачное удаление")
+
+	}
+
+	/* PUT method */
+	if method == http.MethodPut {
+		/* Create executing task */
+		e := run.Execute{
+			Ctx: h.Ctx,
+			DB:  h.DB,
+		}
+		/* Parsing http query */
+		id, err := strconv.Atoi(r.URL.Query().Get("id"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		/* Parsing json body */
+		var d datework.DateJson
+		if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		d.ID = id //Write id to struct
+		/* Run update gorutine */
+		go func(d datework.DateJson, ctx context.Context, p *pgxpool.Pool) {
+			if err := bd.UpdateTask(d, ctx, p); err != nil {
+				fmt.Println(err)
+			}
+		}(d, h.Ctx, h.DB)
+
+		/* Exec the command */
+		if !d.Repeat {
+			fmt.Println("Запущено единожды")
+			go func(Date datework.DateJson) {
+				if err := e.ExecOnce(Date); err != nil {
+					fmt.Println(err)
+				}
+			}(d)
+		} else {
+			fmt.Println("Запущено повторение")
+			go func(Date datework.DateJson) {
+				if err := e.ExecRepeat(&Date); err != nil {
+					fmt.Println(err)
+				}
+			}(d)
+		}
+
+		/* Answer client */
+		w.WriteHeader(http.StatusOK)
+		writeJson, err := json.Marshal(d)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(writeJson)
 
 	}
 }
